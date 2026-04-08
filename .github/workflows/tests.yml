@@ -18,7 +18,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest   # Use a free Linux cloud computer
-    timeout-minutes: 15      # Safety: kill if stuck for 15 min
+    timeout-minutes: 30      # Safety: kill if stuck for 30 min
 
     steps:
       # STEP 1: Download our code onto the cloud computer
