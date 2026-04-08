@@ -86,6 +86,17 @@ public class ApiUiIntegrationTest extends BaseTest {
         JsonObject body = JsonParser.parseString(response.text()).getAsJsonObject();
         assertEquals(body.get("responseCode").getAsInt(), 201, "User creation failed");
         System.out.println("API user creation took: " + duration + "ms");
+
+        // Verify the created account credentials work via API before attempting UI login
+        APIResponse verifyResponse = api.post("/api/verifyLogin",
+                RequestOptions.create()
+                        .setForm(FormData.create()
+                                .set("email", testEmail)
+                                .set("password", testPassword)));
+        JsonObject verifyBody = JsonParser.parseString(verifyResponse.text()).getAsJsonObject();
+        System.out.println("DEBUG: verifyLogin response: " + verifyBody);
+        assertEquals(verifyBody.get("responseCode").getAsInt(), 200,
+                "API-created account should be verifiable via API login");
     }
 
     @Test(description = "Step 2: Login via UI and verify logged-in state",
