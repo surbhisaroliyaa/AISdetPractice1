@@ -45,6 +45,48 @@ public class HomePage {
         navLink("/contact_us").click();
     }
 
+    // Subscription
+    private final Locator subscribeEmailInput;
+    private final Locator subscribeButton;
+    private final Locator subscribeSuccessMessage;
+
+    {
+        subscribeEmailInput = page.locator("#susbscribe_email");
+        subscribeButton = page.locator("#subscribe");
+        subscribeSuccessMessage = page.locator("#success-subscribe .alert-success");
+    }
+
+    public void enterSubscriptionEmail(String email) {
+        subscribeEmailInput.scrollIntoViewIfNeeded();
+        subscribeEmailInput.fill(email);
+    }
+
+    public void clickSubscribe() {
+        subscribeButton.click();
+    }
+
+    public void subscribe(String email) {
+        enterSubscriptionEmail(email);
+        clickSubscribe();
+    }
+
+    public String getSubscribeSuccessMessage() {
+        return subscribeSuccessMessage.innerText();
+    }
+
+    public boolean isSubscribeSuccessVisible() {
+        return subscribeSuccessMessage.isVisible();
+    }
+
+    // Scroll
+    public Locator getScrollUpArrow() {
+        return page.locator("#scrollUp");
+    }
+
+    public boolean isLogoVisible() {
+        return page.locator(".logo img").isVisible();
+    }
+
     // Verifications
     public boolean isSliderVisible() {
         return page.locator("#slider-carousel").isVisible();
