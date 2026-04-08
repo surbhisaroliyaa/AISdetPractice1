@@ -7,8 +7,16 @@ import config.ConfigReader;
 public class HomePage {
     private final Page page;
 
+    // Subscription locators
+    private final Locator subscribeEmailInput;
+    private final Locator subscribeButton;
+    private final Locator subscribeSuccessMessage;
+
     public HomePage(Page page) {
         this.page = page;
+        subscribeEmailInput = page.locator("#susbscribe_email");
+        subscribeButton = page.locator("#subscribe");
+        subscribeSuccessMessage = page.locator("#success-subscribe .alert-success");
     }
 
     // Navigation
@@ -43,6 +51,37 @@ public class HomePage {
 
     public void clickContactUs() {
         navLink("/contact_us").click();
+    }
+
+    public void enterSubscriptionEmail(String email) {
+        subscribeEmailInput.scrollIntoViewIfNeeded();
+        subscribeEmailInput.fill(email);
+    }
+
+    public void clickSubscribe() {
+        subscribeButton.click();
+    }
+
+    public void subscribe(String email) {
+        enterSubscriptionEmail(email);
+        clickSubscribe();
+    }
+
+    public String getSubscribeSuccessMessage() {
+        return subscribeSuccessMessage.innerText();
+    }
+
+    public boolean isSubscribeSuccessVisible() {
+        return subscribeSuccessMessage.isVisible();
+    }
+
+    // Scroll
+    public Locator getScrollUpArrow() {
+        return page.locator("#scrollUp");
+    }
+
+    public boolean isLogoVisible() {
+        return page.locator(".logo img").isVisible();
     }
 
     // Verifications
