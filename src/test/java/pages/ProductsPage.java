@@ -176,10 +176,15 @@ public class ProductsPage {
         String src = img.getAttribute("src");
         boolean isVisible = img.isVisible();
         boolean hasSrc = src != null && !src.isEmpty();
-        // Use naturalComplete + naturalWidth — works reliably in headless CI
-        // getBoundingClientRect().height can return 0 before image fully renders in headless
+        // Wait for image to actually finish loading — in headless CI, images may still
+        // be downloading even after scrollIntoView. This returns a promise that resolves
+        // when the image loads (or immediately if already loaded).
         boolean isLoaded = (Boolean) img.evaluate(
-                "el => el.complete && el.naturalWidth > 0");
+                "el => new Promise(resolve => {"
+                + "  if (el.complete && el.naturalWidth > 0) resolve(true);"
+                + "  else { el.onload = () => resolve(el.naturalWidth > 0);"
+                + "         el.onerror = () => resolve(false); }"
+                + "})");
         return isVisible && hasSrc && isLoaded;
     }
 
