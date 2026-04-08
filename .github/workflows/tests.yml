@@ -1,0 +1,66 @@
+# ============================================
+# CI Pipeline for Playwright Test Framework
+# ============================================
+# WHAT: Runs all Playwright tests automatically
+# WHEN: Every time code is pushed to main, or a PR is opened
+# WHERE: On a fresh Ubuntu Linux machine in the cloud
+# ============================================
+
+name: Run Tests
+
+# TRIGGER: When should this pipeline run?
+on:
+  push:
+    branches: [main]         # When code is pushed to main branch
+  pull_request:
+    branches: [main]         # When a PR is opened targeting main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest   # Use a free Linux cloud computer
+    timeout-minutes: 15      # Safety: kill if stuck for 15 min
+
+    steps:
+      # STEP 1: Download our code onto the cloud computer
+      # (Remember: the cloud computer starts EMPTY — no code!)
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # STEP 2: Install Java 21
+      # (The cloud computer has NO Java — we must install it)
+      # 'cache: maven' saves downloaded dependencies for next run
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      # STEP 3: Install Playwright browsers
+      # Playwright needs its OWN browsers — can't use system Chrome
+      # --with-deps installs Linux system libraries browsers need
+      - name: Install Playwright browsers
+        run: mvn exec:java -e -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="install --with-deps"
+
+      # STEP 4: Run the tests!
+      # CI=true is already set by GitHub Actions automatically
+      # So ConfigReader loads config-ci.properties (headless=true)
+      - name: Run tests
+        run: mvn test
+
+      # STEP 5: Save reports so we can download and view them
+      # if: always() = save even if tests FAILED (that's when we need them most!)
+      - name: Upload test reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-reports
+          path: reports/
+
+      # STEP 6: Save traces too (for debugging with Trace Viewer)
+      - name: Upload traces
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-traces
+          path: traces/

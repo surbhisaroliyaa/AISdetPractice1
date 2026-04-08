@@ -1,0 +1,7 @@
+target/
+.idea/
+*.iml
+*.class
+reports/
+traces/
+auth-state.json
