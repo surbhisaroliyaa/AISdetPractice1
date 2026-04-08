@@ -94,7 +94,23 @@ public class ApiUiIntegrationTest extends BaseTest {
         // Login via UI — this is what we're actually testing (the real user flow)
         SignupLoginPage loginPage = new SignupLoginPage(page);
         loginPage.navigateToLoginPage();
+        page.waitForLoadState();
         loginPage.login(testEmail, testPassword);
+
+        // Wait for navigation after login — successful login redirects to homepage
+        // If still on /login after 10s, login failed — print page content for debugging
+        try {
+            page.waitForURL("**/", new com.microsoft.playwright.Page.WaitForURLOptions()
+                    .setTimeout(15000));
+        } catch (Exception e) {
+            System.out.println("DEBUG: Login may have failed. Current URL: " + page.url());
+            System.out.println("DEBUG: Page title: " + page.title());
+            // Check if error message is shown
+            if (page.locator("p[style*='color: red']").isVisible()) {
+                System.out.println("DEBUG: Error message: " + page.locator("p[style*='color: red']").innerText());
+            }
+            throw e;
+        }
 
         // Verify: logged in — username visible in header
         assertThat(page.locator("a:has-text('Logged in as')")).isVisible();
