@@ -176,9 +176,11 @@ public class ProductsPage {
         String src = img.getAttribute("src");
         boolean isVisible = img.isVisible();
         boolean hasSrc = src != null && !src.isEmpty();
-        // Check image has actual rendered dimensions (broken images have 0 height)
-        Number height = (Number) img.evaluate("el => el.getBoundingClientRect().height");
-        return isVisible && hasSrc && height.doubleValue() > 0;
+        // Use naturalComplete + naturalWidth — works reliably in headless CI
+        // getBoundingClientRect().height can return 0 before image fully renders in headless
+        boolean isLoaded = (Boolean) img.evaluate(
+                "el => el.complete && el.naturalWidth > 0");
+        return isVisible && hasSrc && isLoaded;
     }
 
     // ========== Navigation ==========
