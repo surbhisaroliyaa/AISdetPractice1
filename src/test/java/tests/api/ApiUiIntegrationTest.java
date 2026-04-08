@@ -103,7 +103,14 @@ public class ApiUiIntegrationTest extends BaseTest {
         setupPage.locator("[data-qa='zipcode']").fill(TestDataGenerator.getRandomZipcode());
         setupPage.locator("[data-qa='mobile_number']").fill(TestDataGenerator.getRandomPhone());
         setupPage.locator("[data-qa='create-account']").click();
+
+        // Wait for "Account Created" confirmation before proceeding
+        // In CI, form submission can be slow — without this wait, the context
+        // closes before the account is fully created on the server
+        setupPage.locator("h2:has-text('Account Created')").waitFor();
         setupPage.locator("[data-qa='continue-button']").click();
+        // Wait for homepage to load — ensures account creation is fully committed
+        setupPage.waitForURL("**/");
 
         setupContext.close();
 
