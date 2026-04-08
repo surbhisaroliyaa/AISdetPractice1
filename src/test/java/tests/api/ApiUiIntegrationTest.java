@@ -117,7 +117,24 @@ public class ApiUiIntegrationTest extends BaseTest {
         // Login via UI — this is what we're actually testing (the real user flow)
         SignupLoginPage loginPage = new SignupLoginPage(page);
         loginPage.navigateToLoginPage();
+
+        // Wait for login form to be fully interactive before filling
+        page.locator("[data-qa='login-email']").waitFor();
         loginPage.login(testEmail, testPassword);
+
+        // Check if login succeeded or failed
+        // In CI, ads/overlays can sometimes intercept the login click
+        if (page.url().contains("/login")) {
+            // Still on login page — check for error or retry
+            if (page.locator(".login-form p[style='color: red;']").isVisible()) {
+                System.out.println("DEBUG: Login error: " +
+                        page.locator(".login-form p[style='color: red;']").innerText());
+                System.out.println("DEBUG: Email used: " + testEmail);
+            }
+            // Retry login — ads may have intercepted the first click
+            System.out.println("DEBUG: Retrying login...");
+            loginPage.login(testEmail, testPassword);
+        }
 
         // Verify: logged in — username visible in header
         assertThat(page.locator("a:has-text('Logged in as')")).isVisible();
