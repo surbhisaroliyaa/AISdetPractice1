@@ -19,13 +19,13 @@ import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertTha
 import static org.testng.Assert.*;
 
 /**
- * Integration test: API setup → UI test → API cleanup
+ * Integration test: UI setup → UI test → API cleanup
  *
- * This is the most impressive pattern for interviews:
- * - Step 1: Create user via API (fast — no browser, <1 second)
- * - Step 2: Login via UI (realistic — tests the actual login flow)
- * - Step 3: Verify logged-in state via UI
- * - Step 4: Delete user via API (reliable cleanup — no UI flakiness)
+ * Pattern:
+ * - Setup: Create user via UI signup in @BeforeClass (proven to work in CI)
+ * - Step 1: Login via UI (realistic — tests the actual login flow)
+ * - Step 2: Delete user via API (reliable cleanup — no UI flakiness)
+ * - Step 3: Verify deletion via API
  */
 public class ApiUiIntegrationTest extends BaseTest {
 
@@ -47,20 +47,13 @@ public class ApiUiIntegrationTest extends BaseTest {
                 new APIRequest.NewContextOptions()
                         .setBaseURL(ConfigReader.getBaseUrl())
         );
+
+        // Create user via UI in a separate context (same pattern as LoginTest)
+        // Must be in @BeforeClass — creating in @Test causes login failures in CI
+        createTestUser();
     }
 
-    @AfterClass
-    @Override
-    public void closeBrowser() {
-        api.dispose();
-        super.closeBrowser();
-    }
-
-    @Test(description = "Step 1: Create user via UI signup (ensures password works for UI login)", priority = 1)
-    public void step1_CreateUserViaApi() {
-        // NOTE: Originally used API createAccount, but the site's API stores passwords
-        // differently than UI signup — API-created accounts can't login via UI.
-        // Using UI signup in a separate context ensures password hashing matches.
+    private void createTestUser() {
         long startTime = System.currentTimeMillis();
 
         BrowserContext setupContext = getBrowser().newContext();
@@ -104,13 +97,9 @@ public class ApiUiIntegrationTest extends BaseTest {
         setupPage.locator("[data-qa='mobile_number']").fill(TestDataGenerator.getRandomPhone());
         setupPage.locator("[data-qa='create-account']").click();
 
-        // Wait for "Account Created" confirmation before proceeding
-        // In CI, form submission can be slow — without this wait, the context
-        // closes before the account is fully created on the server
+        // Wait for confirmation
         setupPage.locator("h2:has-text('Account Created')").waitFor();
         setupPage.locator("[data-qa='continue-button']").click();
-        // Wait for homepage to load — ensures account creation is fully committed
-        setupPage.waitForURL("**/");
 
         setupContext.close();
 
@@ -118,30 +107,19 @@ public class ApiUiIntegrationTest extends BaseTest {
         System.out.println("UI user creation took: " + duration + "ms");
     }
 
-    @Test(description = "Step 2: Login via UI and verify logged-in state",
-            priority = 2, dependsOnMethods = "step1_CreateUserViaApi")
-    public void step2_LoginViaUiAndVerify() {
+    @AfterClass
+    @Override
+    public void closeBrowser() {
+        api.dispose();
+        super.closeBrowser();
+    }
+
+    @Test(description = "Step 1: Login via UI and verify logged-in state", priority = 1)
+    public void step1_LoginViaUiAndVerify() {
         // Login via UI — this is what we're actually testing (the real user flow)
         SignupLoginPage loginPage = new SignupLoginPage(page);
         loginPage.navigateToLoginPage();
-
-        // Wait for login form to be fully interactive before filling
-        page.locator("[data-qa='login-email']").waitFor();
         loginPage.login(testEmail, testPassword);
-
-        // Check if login succeeded or failed
-        // In CI, ads/overlays can sometimes intercept the login click
-        if (page.url().contains("/login")) {
-            // Still on login page — check for error or retry
-            if (page.locator(".login-form p[style='color: red;']").isVisible()) {
-                System.out.println("DEBUG: Login error: " +
-                        page.locator(".login-form p[style='color: red;']").innerText());
-                System.out.println("DEBUG: Email used: " + testEmail);
-            }
-            // Retry login — ads may have intercepted the first click
-            System.out.println("DEBUG: Retrying login...");
-            loginPage.login(testEmail, testPassword);
-        }
 
         // Verify: logged in — username visible in header
         assertThat(page.locator("a:has-text('Logged in as')")).isVisible();
@@ -155,9 +133,9 @@ public class ApiUiIntegrationTest extends BaseTest {
         assertThat(page.locator("a:has-text('Signup / Login')")).not().isVisible();
     }
 
-    @Test(description = "Step 4: Delete user via API (reliable cleanup)",
-            priority = 3, alwaysRun = true)
-    public void step3_DeleteUserViaApi() {
+    @Test(description = "Step 2: Delete user via API (reliable cleanup)",
+            priority = 2, alwaysRun = true)
+    public void step2_DeleteUserViaApi() {
         long startTime = System.currentTimeMillis();
 
         APIResponse response = api.delete("/api/deleteAccount",
@@ -174,9 +152,9 @@ public class ApiUiIntegrationTest extends BaseTest {
         System.out.println("API user deletion took: " + duration + "ms");
     }
 
-    @Test(description = "Step 4: Verify deletion — user cannot login",
-            priority = 4, dependsOnMethods = "step3_DeleteUserViaApi")
-    public void step4_VerifyDeletion() {
+    @Test(description = "Step 3: Verify deletion — user cannot login",
+            priority = 3, dependsOnMethods = "step2_DeleteUserViaApi")
+    public void step3_VerifyDeletion() {
         APIResponse response = api.post("/api/verifyLogin",
                 RequestOptions.create()
                         .setForm(FormData.create()
