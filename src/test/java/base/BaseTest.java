@@ -2,6 +2,7 @@ package base;
 
 import com.microsoft.playwright.*;
 import com.microsoft.playwright.Tracing;
+import com.microsoft.playwright.assertions.PlaywrightAssertions;
 import config.ConfigReader;
 import org.testng.annotations.*;
 
@@ -42,6 +43,7 @@ public class BaseTest {
     public void setup() {
         tlContext.set(tlBrowser.get().newContext());
         tlContext.get().setDefaultTimeout(ConfigReader.getTimeout());
+        PlaywrightAssertions.setDefaultAssertionTimeout(ConfigReader.getTimeout());
         tlPage.set(tlContext.get().newPage());
 
         // Set convenience fields so tests can use 'page' and 'context' directly
