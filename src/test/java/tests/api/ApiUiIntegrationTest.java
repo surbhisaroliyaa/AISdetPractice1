@@ -101,7 +101,11 @@ public class ApiUiIntegrationTest extends BaseTest {
         setupPage.locator("h2:has-text('Account Created')").waitFor();
         setupPage.locator("[data-qa='continue-button']").click();
 
-        setupContext.close();
+        try {
+            setupContext.close();
+        } catch (Exception e) {
+            // Context may already be closed if browser was recycled in parallel execution
+        }
 
         long duration = System.currentTimeMillis() - startTime;
         System.out.println("UI user creation took: " + duration + "ms");
