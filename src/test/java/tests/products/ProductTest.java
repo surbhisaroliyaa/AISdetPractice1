@@ -14,6 +14,7 @@ import com.microsoft.playwright.options.WaitUntilState;
 
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
@@ -115,6 +116,25 @@ public class ProductTest extends BaseTest {
         }
     }
 
+    @Test
+    public void testNoProductHasEmptyImageSrc() {
+        productsPage.navigateToProductsPage();
+
+        List<Locator> products = productsPage.getAllProductCards();
+        Assert.assertTrue(products.size() > 0, "Should have products to check");
+
+        List<String> productsWithBadImage = products.stream()
+                .filter(card -> {
+                    String src = productsPage.getProductImageSrc(card);
+                    return src == null || src.trim().isEmpty();
+                })
+                .map(productsPage::getProductName)
+                .collect(Collectors.toList());
+
+        Assert.assertEquals(productsWithBadImage.size(), 0,
+                "No product should have an empty/missing image src. Offenders: " + productsWithBadImage);
+    }
+
     // =============================================
     // SEARCH TESTS
     // =============================================
@@ -137,16 +157,16 @@ public class ProductTest extends BaseTest {
 
         // Verify at least one result contains the search term in its name
         // Note: site searches by tags/description too, so not ALL results will have the term in the name
-        boolean foundMatch = false;
-        for (Locator card : results) {
-            String name = productsPage.getProductName(card);
-            if (name.toLowerCase().contains(searchTerm.toLowerCase())) {
-                foundMatch = true;
-                break;
-            }
-        }
+        List<String> resultNames = results.stream()
+                .map(productsPage::getProductName)
+                .collect(Collectors.toList());
+
+        String needle = searchTerm.toLowerCase();
+        boolean foundMatch = resultNames.stream()
+                .anyMatch(name -> name.toLowerCase().contains(needle));
+
         Assert.assertTrue(foundMatch,
-                "At least one result should contain '" + searchTerm + "' in its name");
+                "At least one result should contain '" + searchTerm + "' in its name. Got: " + resultNames);
     }
 
     @Test
