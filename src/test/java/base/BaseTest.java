@@ -73,7 +73,11 @@ public class BaseTest {
 
     @AfterMethod
     public void cleanup() {
-        tlContext.get().close();
+        try {
+            tlContext.get().close();
+        } catch (Exception e) {
+            // Context may already be closed if browser was recycled in parallel execution
+        }
         tlContext.remove();
         tlPage.remove();
         page = null;
