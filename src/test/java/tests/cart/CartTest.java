@@ -139,6 +139,36 @@ public class CartTest extends BaseTest {
         }
     }
 
+    // ========== Test 4b: Sum of Row Totals = Sum of (Price * Quantity) — stream aggregation ==========
+
+    @Test(priority = 4)
+    public void testCartTotalsAggregateCorrectly() {
+        goToProducts();
+        addProductAndContinue(0);
+        addProductAndContinue(1);
+
+        cartPage.navigateToCart();
+
+        List<Locator> rows = cartPage.getCartRows();
+        Assert.assertTrue(rows.size() >= 2, "Should have at least 2 products in cart");
+
+        double sumOfRowTotals = rows.stream()
+                .map(cartPage::getProductTotal)
+                .mapToDouble(s -> cartPage.extractPrice(s))
+                .sum();
+
+        double sumOfPriceTimesQty = rows.stream()
+                .mapToDouble(row -> {
+                    int price = cartPage.extractPrice(cartPage.getProductPrice(row));
+                    int qty = Integer.parseInt(cartPage.getProductQuantity(row).trim());
+                    return price * qty;
+                })
+                .sum();
+
+        Assert.assertEquals(sumOfRowTotals, sumOfPriceTimesQty, 0.01,
+                "Sum of displayed row totals should equal sum of price * quantity across all rows");
+    }
+
     // ========== Test 5: Set Quantity on Detail Page, Verify in Cart ==========
 
     @Test(priority = 5)
